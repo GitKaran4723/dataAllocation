@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Faculty Directory</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-100 to-blue-50 text-gray-800">
+
+  <!-- 🚀 Loading Overlay -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50 text-blue-700 text-lg font-medium transition-opacity duration-300">
+    <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 mb-4"></div>
+    <p id="loadingText" class="animate-pulse">Sending request to server...</p>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6 text-center text-blue-700">👩‍🏫 Faculty Directory</h1>
+
+    <!-- 🔍 Search -->
+    <div class="flex justify-center mb-8">
+      <input type="text" id="searchInput" placeholder="Search by name, college, or specialization..."
+        class="w-full md:w-2/3 lg:w-1/2 px-4 py-3 border border-blue-300 rounded-md shadow focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+    </div>
+
+    <!-- 📋 Faculty Cards -->
+    <div id="cardContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </div>
+
+  <script>
+    let allFaculty = [];
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Copied: " + text);
+      });
+    }
+
+    async function fetchData() {
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      const loadingText = document.getElementById('loadingText');
+
+      loadingOverlay.style.display = 'flex';
+      loadingText.innerText = "Sending request to server...";
+
+      setTimeout(() => loadingText.innerText = "Reached server...", 500);
+      setTimeout(() => loadingText.innerText = "Getting data...", 1000);
+
+      try {
+        const response = await fetch('/teachers/All');
+        const data = await response.json();
+
+        setTimeout(() => {
+          loadingText.innerText = "Displaying data...";
+          renderCards(data);
+          setTimeout(() => loadingOverlay.style.display = 'none', 500);
+        }, 1500);
+
+        allFaculty = data;
+
+      } catch (error) {
+        loadingText.innerText = "❌ Failed to load data.";
+        setTimeout(() => loadingOverlay.style.display = 'none', 2000);
+      }
+    }
+
+    function renderCards(data) {
+      const container = document.getElementById('cardContainer');
+      container.innerHTML = '';
+
+      data.forEach(faculty => {
+        const name = faculty["Faculty Name"] || "Unnamed";
+        const email = faculty["Email ID"] || "-";
+        const phone = faculty["Phone Number"] || "-";
+        const college = faculty["Select Your College"] || "-";
+        const specialization = faculty["Select Specialization"] || "-";
+        const exp = faculty["Total Teaching Experience (In Years)"] || "0";
+        const id = faculty["UUCMS Teacher ID"] || "-";
+
+        const card = document.createElement('div');
+        card.className = "bg-white p-5 rounded-xl shadow-lg border border-blue-100 transition duration-300 hover:shadow-2xl";
+
+        card.innerHTML = `
+          <div class="mb-3">
+            <h2 class="text-xl font-semibold text-blue-700">${name}</h2>
+            <p class="text-sm text-gray-600"><strong>📧</strong> 
+              <a href="mailto:${email}" class="text-blue-600 hover:underline">${email}</a>
+              <button onclick="copyToClipboard('${email}')" class="ml-2 text-xs bg-blue-100 px-2 py-0.5 rounded hover:bg-blue-200">Copy</button>
+            </p>
+            <p class="text-sm text-gray-600"><strong>📞</strong> 
+              <a href="tel:${phone}" class="text-blue-600 hover:underline">${phone}</a>
+              <button onclick="copyToClipboard('${phone}')" class="ml-2 text-xs bg-blue-100 px-2 py-0.5 rounded hover:bg-blue-200">Copy</button>
+            </p>
+          </div>
+
+          <div class="border-t pt-3 mt-3">
+            <p class="text-sm mb-2"><strong>🏫 College:</strong> ${college}</p>
+            <p class="text-sm mb-2"><strong>🧠 Specialization:</strong><br><span class="text-gray-700">${specialization}</span></p>
+          </div>
+
+          <div class="border-t pt-3 mt-3 text-sm">
+            <p><strong>🎓 Experience:</strong> ${exp} yrs</p>
+            <p><strong>🆔 UUCMS ID:</strong> ${id}</p>
+            <button onclick="copyToClipboard('Name: ${name}\\nEmail: ${email}\\nPhone: ${phone}\\nCollege: ${college}\\nSpecializations: ${specialization}\\nExperience: ${exp} years')"
+              class="mt-2 text-xs bg-green-100 px-3 py-1 rounded hover:bg-green-200">
+              📋 Copy All Info
+            </button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    document.getElementById("searchInput").addEventListener("input", function () {
+      const query = this.value.toLowerCase();
+      const filtered = allFaculty.filter(f =>
+        (f["Faculty Name"] || "").toLowerCase().includes(query) ||
+        (f["Select Your College"] || "").toLowerCase().includes(query) ||
+        (f["Select Specialization"] || "").toLowerCase().includes(query)
+      );
+      renderCards(filtered);
+    });
+
+    fetchData();
+  </script>
+</body>
+</html>

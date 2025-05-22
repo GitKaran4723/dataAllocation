@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>College Zone Directory</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-100 to-blue-50 text-gray-800">
+
+  <!-- 🚀 Loading Overlay -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50 text-blue-700 text-lg font-medium">
+    <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 mb-4"></div>
+    <p id="loadingText" class="animate-pulse">Sending request to server...</p>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6 text-center text-blue-700">📍 College Zone Directory</h1>
+
+    <!-- Search -->
+    <div class="flex justify-center mb-6">
+      <input type="text" id="searchInput" placeholder="Search by college, zone, or contact person"
+        class="w-full max-w-2xl px-4 py-3 border border-blue-300 rounded shadow bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <!-- Card container -->
+    <div id="cardContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </div>
+
+  <script>
+    let allColleges = [];
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Copied: " + text);
+      });
+    }
+
+    async function fetchData() {
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      const loadingText = document.getElementById('loadingText');
+
+      loadingOverlay.style.display = 'flex';
+      loadingText.innerText = "Sending request to server...";
+
+      setTimeout(() => loadingText.innerText = "Reached server...", 500);
+      setTimeout(() => loadingText.innerText = "Getting data...", 1000);
+
+      try {
+        const response = await fetch('/zones/All');
+        const data = await response.json();
+
+        setTimeout(() => {
+          loadingText.innerText = "Displaying data...";
+          renderCards(data);
+          setTimeout(() => loadingOverlay.style.display = 'none', 500);
+        }, 1500);
+
+        allColleges = data;
+
+      } catch (error) {
+        loadingText.innerText = "❌ Failed to load data.";
+        setTimeout(() => loadingOverlay.style.display = 'none', 2000);
+      }
+    }
+
+    function renderCards(data) {
+      const container = document.getElementById('cardContainer');
+      container.innerHTML = '';
+
+      data.forEach(c => {
+        const name = c["college_name"] || "-";
+        const address = c["college_address"] || "-";
+        const zone = c["college_zone"] || "-";
+        const contact = c["college_contact_person"] || "-";
+        const phone = c["college_contact_person_phone"] !== "NULL" ? c["college_contact_person_phone"] : "-";
+        const pin = c["college_pincode"] || "-";
+
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-xl shadow-md p-5 hover:shadow-xl border border-blue-100 transition";
+
+        card.innerHTML = `
+          <h2 class="text-xl font-semibold text-blue-700 mb-1">${name}</h2>
+          <p class="text-sm text-gray-600 mb-1"><strong>📍 Zone:</strong> ${zone}</p>
+          <p class="text-sm text-gray-600 mb-1"><strong>🏠 Address:</strong> ${address}</p>
+          <p class="text-sm text-gray-600 mb-1"><strong>📮 Pincode:</strong> ${pin}</p>
+          <p class="text-sm text-gray-600 mb-1"><strong>👤 Contact:</strong> ${contact}</p>
+          <p class="text-sm text-gray-600 mb-1">
+            <strong>📞 Phone:</strong> ${phone !== "-" ? `<a href="tel:${phone}" class="text-blue-600 hover:underline">${phone}</a>` : phone}
+            ${phone !== "-" ? `<button onclick="copyToClipboard('${phone}')" class="ml-2 text-xs bg-blue-100 px-2 py-0.5 rounded hover:bg-blue-200">Copy</button>` : ""}
+          </p>
+          <button onclick="copyToClipboard('College: ${name}\\nZone: ${zone}\\nContact: ${contact}\\nPhone: ${phone}\\nAddress: ${address}')"
+            class="mt-3 text-xs bg-green-100 px-3 py-1 rounded hover:bg-green-200">
+            📋 Copy All Info
+          </button>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    document.getElementById("searchInput").addEventListener("input", function () {
+      const query = this.value.toLowerCase();
+      const filtered = allColleges.filter(c =>
+        (c["college_name"] || "").toLowerCase().includes(query) ||
+        (c["college_zone"] || "").toLowerCase().includes(query) ||
+        (c["college_contact_person"] || "").toLowerCase().includes(query)
+      );
+      renderCards(filtered);
+    });
+
+    fetchData();
+  </script>
+</body>
+</html>
